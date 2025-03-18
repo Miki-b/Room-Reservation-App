@@ -1,75 +1,55 @@
 # Room Reservation App
 
-A new Flutter project.
-
 ## Overview
-The Room Reservation App is a mobile application built using Flutter that provides a convenient platform for booking hotel rooms, guest houses, and pensions. This app aims to streamline the reservation process, making it efficient, user-friendly, and accessible for tourists, travelers, festival attendees, and anyone needing accommodation. It addresses the current challenges of inefficient, tiresome, time-consuming, and unsatisfying reservation methods in Ethiopia.
+The **Room Reservation App** is a mobile application built using Flutter, designed to provide a seamless and efficient platform for booking accommodations, including hotel rooms, guest houses, and pensions. The app simplifies the reservation process, making it user-friendly and accessible for tourists, travelers, festival attendees, and anyone in need of a stay. It addresses the inefficiencies and frustrations associated with traditional booking methods in Ethiopia.
 
-**Features**
+## ✨ Features
 
-**Search by Location**: 
-Easily search for available rooms based on location, using an integrated map view.
+- **🔍 Search by Location:** Easily search for available rooms based on location with an integrated map view.
+- **⚙️ Advanced Filters:** Apply multiple filters (price, amenities, room type, etc.) for a customized search experience.
+- **🏨 Room Details:** View comprehensive room details, including images, pricing, amenities, and customer reviews.
+- **📅 Real-Time Availability:** Check live room availability and make instant reservations.
+- **👤 Profile Management:** Create and manage user profiles, including booking preferences, history, and favorite hotels.
+- **🏢 Hotel Owner Portal:** A dedicated portal for hotel service providers to manage room listings, availability, and bookings.
+- **☎️ Contact Center:** Built-in communication features for direct interaction with hotels.
+- **☁️ Firebase Integration:** Secure data storage for user information, room data, and image uploads.
+- **🤖 Telegram Mini App:** Enables bookings through a Telegram bot, catering to a wider Ethiopian audience.
 
-**Filter Functionality**:
-Apply multiple filters (price, amenities, room type, etc.) for a tailored search experience.
+## 🛠 Tech Stack
 
-**Room Details**: 
-View detailed information about each room, including images, pricing, amenities, and reviews.
+- **Frontend:** Flutter (Dart)
+- **Backend:** REST API / Firebase
+- **Database:** Firestore
+- **Authentication:** Firebase Authentication
+- **Maps Integration:** Google Maps API
+- **Cloud Storage:** Firebase Storage
+- **Notifications:** Firebase Cloud Messaging (FCM)
 
-**Real-Time Availability**: 
-Check real-time room availability and make instant bookings.
+## 🚀 Installation Guide
 
-**Profile Management**: 
-Create and manage user profiles to save booking preferences, history, and favorite hotels.
+Follow these steps to run the app locally:
 
-**Hotel Owner Portal**: 
-A dedicated portal for service providers (hotels, guest houses, pensions) to manage room listings, availability, and bookings.
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/Miki-b/Hotel-Reservation-App.git
+   ```
 
-**Contact Center**: 
-A built-in contact center for direct communication with the hotel.
+2. **Navigate to the project directory:**
+   ```sh
+   cd Hotel-Reservation-App
+   ```
 
-**Firebase Integration**: 
-Secure data storage for user information, room data, and image uploads.
+3. **Install dependencies:**
+   ```sh
+   flutter pub get
+   ```
 
-**Telegram Mini App Integration**: 
-Allow bookings through a Telegram bot, catering to a broader Ethiopian audience.
+4. **Run the app:**
+   ```sh
+   flutter run
+   ```
 
-**Tech Stack**
-
-Frontend: Flutter
-
-Backend: REST API / Firebase
-
-Database: Firestore
-
-Authentication: Firebase Authentication
-
-Maps Integration: Google Maps API
-
-Cloud Storage: Firebase Storage
-
-Notifications: Firebase Cloud Messaging (FCM)
-
-**Installation**
-
-To run the app locally, follow these steps:
-
-###Clone the repository:
-
-git clone https://github.com/Miki-b/Hotel-Reservation-App.git
-
-###Navigate to the project directory:
-
-cd Hotel-Reservation-App
-
-###Install dependencies:
-
-flutter pub get
-
-###Run the app:
-
-flutter run
-**Preview**
+## 📸 App Previews
 
 ![photo_2024-09-14_20-54-39](https://github.com/user-attachments/assets/0a3346c3-b706-4652-852c-1fc73ab21b15)
 
@@ -79,14 +59,16 @@ flutter run
 
 ![photo_2024-09-14_20-52-36](https://github.com/user-attachments/assets/41aef27c-bfb4-4985-8b24-b147fceb8e71)
 
-**contact**
+## 📞 Contact
 
-For any inquiries or feedback, please contact:
+For any inquiries or feedback, feel free to reach out:
 
-Name: Michael Behailu
+- **👤 Name:** Michael Behailu  
+- **✉️ Email:** [michaelbehailu0@gmail.com](mailto:michaelbehailu0@gmail.com)  
+- **🔗 LinkedIn:** [Michael Behailu](https://www.linkedin.com/in/michael-behailu-20ab05287/)  
+- **💻 GitHub:** [Miki-b](https://github.com/Miki-b)  
 
-Email: [your Email](michaelbehailu0@gmail.com)
+---
 
-LinkedIn: [Your LinkedIn](https://www.linkedin.com/in/michael-behailu-20ab05287/)
+This project is actively maintained, and contributions are welcome!
 
-GitHub: [Your GitHub](https://github.com/Miki-b)
