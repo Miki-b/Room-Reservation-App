@@ -9,6 +9,8 @@ import '../profile/Favourites.dart';
 import '../profile/Settings.dart';
 import '../../../firestore.dart';
 import 'homee.dart';
+import '../admin/admin_screen.dart';
+
 //Setting set=new Setting(onHotelsFetched: (List<Hotels> hotels) {  },);
 class HomeScreen extends StatefulWidget {
   HomeScreen({super.key});
@@ -18,7 +20,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Hotels> allHotels = [];
-  List<Hotels> searchedHotel =[];
+  List<Hotels> searchedHotel = [];
   int pageIndex = 0;
   List<Hotels> nearbyHotels = [];
 
@@ -27,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     fetchNearbyHotels();
     AllHotels();
-    searchedHotel=[];
+    searchedHotel = [];
   }
 
   Future<void> AllHotels() async {
@@ -36,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
       allHotels = hotels;
     });
   }
+
   Future<void> fetchNearbyHotels() async {
     List<Hotels> hotels = await FirestoreService.fetchNearbyHotels();
     setState(() {
@@ -46,15 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomeContent(nearby: nearbyHotels, allhotel: allHotels,),
-      Favourites(),
-      Setting(
-        onHotelsFetched: (List<Hotels> hotels) {
-          setState(() {
-            nearbyHotels = hotels;
-          });
-        },
+      HomeContent(
+        nearby: nearbyHotels,
+        allhotel: allHotels,
       ),
+      Favourites(),
+      AdminScreen(), // Replaces Setting for testing
     ];
 
     return Scaffold(
@@ -111,15 +111,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 icon: pageIndex == 0
                     ? const Icon(
-                  Icons.home,
-                  size: 25,
-                )
+                        Icons.home,
+                        size: 25,
+                      )
                     : const Icon(
-                  Icons.home_outlined,
-                  size: 25,
-                ),
+                        Icons.home_outlined,
+                        size: 25,
+                      ),
               ),
-              Text('Home',style: TextStyle(fontSize: 15),)
+              Text(
+                'Home',
+                style: TextStyle(fontSize: 15),
+              )
             ]),
             Column(children: [
               IconButton(
@@ -130,15 +133,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 icon: pageIndex == 1
                     ? const Icon(
-                  Icons.favorite,
-                  size: 25,
-                )
+                        Icons.favorite,
+                        size: 25,
+                      )
                     : const Icon(
-                  Icons.favorite_border,
-                  size: 25,
-                ),
+                        Icons.favorite_border,
+                        size: 25,
+                      ),
               ),
-              Text('Favourites',style: TextStyle(fontSize: 15),)
+              Text(
+                'Favourites',
+                style: TextStyle(fontSize: 15),
+              )
             ]),
             Column(children: [
               IconButton(
@@ -149,15 +155,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 icon: pageIndex == 2
                     ? const Icon(
-                  Icons.settings,
-                  size: 25,
-                )
+                        Icons.settings,
+                        size: 25,
+                      )
                     : const Icon(
-                  Icons.settings_outlined,
-                  size: 25,
-                ),
+                        Icons.settings_outlined,
+                        size: 25,
+                      ),
               ),
-              Text('Settings',style: TextStyle(fontSize: 15),)
+              Text(
+                'Settings',
+                style: TextStyle(fontSize: 15),
+              )
             ]),
           ],
         ),
@@ -165,8 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-class HomeContent extends StatelessWidget {
 
+class HomeContent extends StatelessWidget {
   const HomeContent({required this.nearby, super.key, required this.allhotel});
   final List<Hotels> nearby;
   final List<Hotels> allhotel;
@@ -175,8 +184,15 @@ class HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    final List<String> cities=['Addis Ababa','Bahirdar','Hawasa','Mekele','Bishoftu','Gondor','DireDawa'];
+    final List<String> cities = [
+      'Addis Ababa',
+      'Bahirdar',
+      'Hawasa',
+      'Mekele',
+      'Bishoftu',
+      'Gondor',
+      'DireDawa'
+    ];
     return Padding(
       padding: const EdgeInsets.all(10.0),
       child: Column(
@@ -202,10 +218,13 @@ class HomeContent extends StatelessWidget {
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [SizedBox(width: 40), Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Icon(Icons.search),
-                )],
+                children: [
+                  SizedBox(width: 40),
+                  Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Icon(Icons.search),
+                  )
+                ],
               ),
             ),
           ),
@@ -217,20 +236,27 @@ class HomeContent extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: cities.map((city) => Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CityCard(city: city, allhotel: allhotel,),
-                  )).toList(),
+                  children: cities
+                      .map((city) => Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: CityCard(
+                              city: city,
+                              allhotel: allhotel,
+                            ),
+                          ))
+                      .toList(),
                 ),
               ),
               Text("Near you"),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: nearby.map((hotel) => Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: HotelsCard(hotel: hotel),
-                  )).toList(),
+                  children: nearby
+                      .map((hotel) => Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: HotelsCard(hotel: hotel),
+                          ))
+                      .toList(),
                 ),
               ),
             ],
@@ -240,6 +266,7 @@ class HomeContent extends StatelessWidget {
     );
   }
 }
+
 class CityCard extends StatelessWidget {
   const CityCard({required this.city, super.key, required this.allhotel});
   final String city;
@@ -247,26 +274,29 @@ class CityCard extends StatelessWidget {
 
   Widget buildStars(int rating) {
     return Row(
-      children: List.generate(rating, (index) => Icon(Icons.star, color: Colors.amber, size: 10)),
+      children: List.generate(
+          rating, (index) => Icon(Icons.star, color: Colors.amber, size: 10)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Hotels> searchedHotel =[];
+    List<Hotels> searchedHotel = [];
     Future<void> Searched(String key) async {
-      key=key+", Ethiopia";
-      for(var hotels in allhotel){
-        if(hotels.location==key) {
+      key = key + ", Ethiopia";
+      for (var hotels in allhotel) {
+        if (hotels.location == key) {
           searchedHotel.add(hotels);
         }
       }
     }
+
     return Expanded(
       child: GestureDetector(
         onTap: () async {
           await Searched(city);
-          Navigator.pushReplacementNamed(context, '/search',arguments: searchedHotel);
+          Navigator.pushReplacementNamed(context, '/search',
+              arguments: searchedHotel);
         },
         child: Container(
           width: 150,
@@ -300,9 +330,10 @@ class CityCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(city, style: GoogleFonts.bebasNeue(
-                      fontSize: 15,
-                    )),
+                    Text(city,
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 15,
+                        )),
                   ],
                 ),
               ),
@@ -313,16 +344,19 @@ class CityCard extends StatelessWidget {
     );
   }
 }
+
 class HotelsCard extends StatelessWidget {
   const HotelsCard({required this.hotel, super.key});
   final Hotels hotel;
 
   Widget buildStars(int rating) {
     return Row(
-      children: List.generate(rating, (index) => Icon(Icons.star, color: Colors.amber, size: 10)),
+      children: List.generate(
+          rating, (index) => Icon(Icons.star, color: Colors.amber, size: 10)),
     );
   }
 
+  @override
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -364,12 +398,15 @@ class HotelsCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(hotel.hotelname, style: GoogleFonts.bebasNeue(
-                      fontSize: 15,
-                    )),
-                    Text(hotel.location.toString(), style: GoogleFonts.bebasNeue(
-                      fontSize: 10,color: Colors.grey,
-                    )),
+                    Text(hotel.hotelname,
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 15,
+                        )),
+                    Text(hotel.location.toString(),
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 10,
+                          color: Colors.grey,
+                        )),
                     buildStars(hotel.hotelStar),
                   ],
                 ),
@@ -381,6 +418,7 @@ class HotelsCard extends StatelessWidget {
     );
   }
 }
+
 class Hotels {
   Hotels({
     required this.id,
