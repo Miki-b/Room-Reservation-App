@@ -1,0 +1,2 @@
+C:/Users/Public/Documents/apps/Room-Reservation-App/android/app/.cxx/RelWithDebInfo/5k44vg2e/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Public/Documents/apps/Room-Reservation-App/android/app/.cxx/RelWithDebInfo/5k44vg2e/armeabi-v7a/CMakeFiles/rebuild_cache.dir

@@ -3,8 +3,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:math';
 
-import 'HomeScreen.dart';
-import 'Hotels.dart';  // Assuming you have this Hotels class definition in a separate file
+import 'presentation/screens/home/HomeScreen.dart';
+
+import 'presentation/screens/hotel/Hotels.dart';  // Assuming you have this Hotels class definition in a separate file
 
 class FirestoreService {
 
