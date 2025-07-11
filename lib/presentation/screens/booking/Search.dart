@@ -1,265 +1,244 @@
-import '../hotel/HotelsMap.dart';
 import 'package:flutter/material.dart';
-import '../home/HomeScreen.dart';
-import 'SearchResults.dart';
-import '../../../firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../components/my_textfield.dart';
+import '../../components/hotel_card.dart';
+import '../../components/hotel_card_shimmer.dart';
+import '../../components/search_hotel_card.dart';
+import '../../components/search_filter_drawer.dart';
+import '../../controllers/search_controller.dart';
 
-class Search extends StatefulWidget {
-  Search({super.key});
-
+class Search extends ConsumerStatefulWidget {
+  const Search({super.key});
   @override
-  State<Search> createState() => _SearchState();
+  ConsumerState<Search> createState() => _SearchState();
 }
 
-class _SearchState extends State<Search> {
-  List<Hotels> allHotels = [];
-  List<Hotels> searchedHotel = [];
-  final recentSearches = TextEditingController();
-
-  int searched = 0;
-  List<String> searchHistory = [];
-
-  void history() {
-    String searches = recentSearches.text;
-    searchHistory.add(searches);
-    print("history $searchHistory");
-  }
+class _SearchState extends ConsumerState<Search> {
+  final _searchController = TextEditingController();
+  final List<String> _recentSearches = [];
 
   @override
   void initState() {
     super.initState();
-    AllHotels();
-  }
-
-  Future<void> Searched(String key) async {
-    for (var hotels in allHotels) {
-      for (var names in hotels.tokens) {
-        if (names == key) {
-          searchedHotel.add(hotels);
-        }
+    // Check if we received a city argument and set it as the search query
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is String) {
+        // If it's a city name, set it as the search query and filter
+        _searchController.text = args;
+        ref.read(searchControllerProvider.notifier).search(args);
+        ref.read(searchControllerProvider.notifier).setCity(args);
       }
-    }
-  }
-
-  Future<void> AllHotels() async {
-    List<Hotels> hotels = await FirestoreService.allHotels();
-    setState(() {
-      allHotels = hotels;
     });
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    List<Hotels>? searchbylocation = ModalRoute.of(context)!.settings.arguments as List<Hotels>?;
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 180,
-          title: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 12.0),
-                child: Center(
-                  child: Container(
-                    alignment: Alignment.center,
-                    width: double.infinity,
-                    height: 45,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          offset: Offset(0, 1),
-                          blurRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(0.0),
-                          child: Container(
-                            width: 200,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(15.0, 10, 0, 0),
-                              child: TextField(
-                                controller: recentSearches,
-                                decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText: 'Search by hotel name'
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        IconButton(onPressed: () {
-                          Navigator.popAndPushNamed(context, '/mainpage');
-                        }, icon: Icon(Icons.cancel_outlined, color: Colors.grey[500],))
-                      ],
+    final state = ref.watch(searchControllerProvider);
+    final notifier = ref.read(searchControllerProvider.notifier);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Search Hotels'),
+        elevation: 1,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Unified search field with button
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    offset: Offset(0, 2),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: MyTextfield(
+                      labelText: 'Search by hotel, city, or amenity',
+                      controller: _searchController,
+                      onChanged: (q) {
+                        // Clear results when user starts typing
+                        if (q.isEmpty) {
+                          ref
+                              .read(searchControllerProvider.notifier)
+                              .search('');
+                          ref
+                              .read(searchControllerProvider.notifier)
+                              .setCity(null);
+                        }
+                      },
+                      prefixIcon: Icon(Icons.search,
+                          color: Theme.of(context).colorScheme.secondary),
+                      // Suffix icon as search button
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.arrow_forward,
+                            color: Theme.of(context).colorScheme.secondary),
+                        onPressed: () {
+                          final searchQuery = _searchController.text.trim();
+                          if (searchQuery.isNotEmpty) {
+                            // Clear city filter when doing a text search
+                            ref
+                                .read(searchControllerProvider.notifier)
+                                .setCity(null);
+                            ref
+                                .read(searchControllerProvider.notifier)
+                                .search(searchQuery);
+                            if (!_recentSearches.contains(searchQuery)) {
+                              setState(
+                                  () => _recentSearches.insert(0, searchQuery));
+                            }
+                          }
+                        },
+                      ),
                     ),
                   ),
-                ),
-              ),
-              SizedBox(height: 8,),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                      width: 180,
-                      height: 45,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.white,
-                        border: Border.all(color: Colors.grey.shade100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            offset: Offset(0, 1),
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: TextButton(onPressed: () {}, child: Text('Filter')),
-                      )),
-                  Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.white,
-                        border: Border.all(color: Colors.grey.shade100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            offset: Offset(0, 1),
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      width: 180,
-                      height: 45,
-                      child: Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: TextButton(onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => HotelsMap(allHotels: allHotels),
-                            ),
-                          );
-                        }, child: Text('Search on Map')),
-                      )),
-                ],
-              )
-            ],
-          ),
-          elevation: 1,
-        ),
-        body: getBodyContent(searchbylocation ?? []),
-        bottomNavigationBar: Container(
-          width: double.infinity,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: GestureDetector(
-              onTap: () async {
-                history();
-                setState(() {
-                  searched = 1;
-                  searchbylocation=[];
-                  searchedHotel=[];
-                });
-                await Searched(recentSearches.text);
-
-              },
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.white,
-                  border: Border.all(color: Colors.grey.shade100),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      offset: Offset(0, 1),
-                      blurRadius: 5,
+                  SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    icon: Icon(Icons.filter_list,
+                        color: Theme.of(context).colorScheme.secondary),
+                    label: Text('Filter',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.secondary,
+                          width: 2),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      foregroundColor: Theme.of(context).colorScheme.secondary,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
-                  ],
-                ),
-                child: Center(child: Text('Search')),
+                    onPressed: () async {
+                      await showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                        builder: (context) => SearchFilterDrawer(
+                          cities: ref
+                              .read(searchControllerProvider.notifier)
+                              .availableCities,
+                          selectedCity: state.selectedCity,
+                          amenities: ref
+                              .read(searchControllerProvider.notifier)
+                              .availableAmenities,
+                          selectedAmenities: state.selectedAmenities,
+                          onCitySelected: (city) {
+                            ref
+                                .read(searchControllerProvider.notifier)
+                                .setCity(city);
+                          },
+                          onAmenityToggled: (amenity) {
+                            ref
+                                .read(searchControllerProvider.notifier)
+                                .toggleAmenity(amenity);
+                          },
+                          onClear: () {
+                            ref
+                                .read(searchControllerProvider.notifier)
+                                .setCity(null);
+                            for (final a in state.selectedAmenities) {
+                              ref
+                                  .read(searchControllerProvider.notifier)
+                                  .toggleAmenity(a);
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
-          ),
+            SizedBox(height: 12),
+            if (_recentSearches.isNotEmpty && state.query.isEmpty)
+              Wrap(
+                spacing: 8,
+                children: _recentSearches
+                    .map((q) => ActionChip(
+                          label: Text(q),
+                          onPressed: () {
+                            _searchController.text = q;
+                            ref
+                                .read(searchControllerProvider.notifier)
+                                .setCity(null);
+                            notifier.search(q);
+                          },
+                        ))
+                    .toList(),
+              ),
+            SizedBox(height: 12),
+            Expanded(
+              child: Builder(
+                builder: (context) {
+                  if (state.isLoading) {
+                    return ListView.builder(
+                      itemCount: 5,
+                      itemBuilder: (_, i) => const HotelCardShimmer(),
+                    );
+                  }
+                  if (state.error != null) {
+                    return Center(child: Text('Error: ${state.error}'));
+                  }
+                  if (state.results.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No hotels found.',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    itemCount: state.results.length,
+                    itemBuilder: (context, i) {
+                      final hotel = state.results[i];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2.0),
+                        child: SearchHotelCard(
+                          name: hotel.name,
+                          location: hotel.location,
+                          stars: hotel.amenityIds
+                              .length, // Replace with hotel class if available
+                          images: hotel.images,
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/HotelProfile',
+                              arguments: hotel,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  Widget getBodyContent(List<Hotels> searchbylocation) {
-    if(searchbylocation.isNotEmpty){
-      setState(() {
-        searched=2;
-      });
-    }
-
-    if (searched == 0) {
-      return ListView.builder(
-        itemCount: searchHistory.length,
-        itemBuilder: (context, index) {
-          print(searchHistory);
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 1.0),
-            child: Container(
-              height: 30,
-              decoration: BoxDecoration(),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(Icons.access_time_outlined),
-                    Text(searchHistory[index]),
-                    Icon(Icons.cancel_outlined)
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    } else if (searched == 1) {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ListView.builder(
-          itemCount: searchedHotel.length,
-          itemBuilder: (BuildContext context, int index) {
-            print(searchedHotel[index].hotelname);
-            print(searchedHotel);
-            return SearchResults(hotel: searchedHotel[index]);
-          },
-        ),
-      );
-    } else if (searched == 2) {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ListView.builder(
-          itemCount: searchbylocation.length,
-          itemBuilder: (BuildContext context, int index) {
-            print(searchbylocation[index].hotelname);
-            print(searchbylocation);
-            return SearchResults(hotel: searchbylocation[index]);
-          },
-        ),
-      );
-    } else {
-      return Container(); // Default case if searched is not 0, 1, or 2
-    }
   }
 }

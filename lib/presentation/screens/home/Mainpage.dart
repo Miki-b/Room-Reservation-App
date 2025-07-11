@@ -1,8 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import '../profile/Dashboard.dart';
-import 'home.dart';
+import '../home/HomeScreen.dart';
+import '../auth/signIn.dart';
 
 class mainpage extends StatelessWidget {
   const mainpage({super.key});
@@ -12,14 +11,13 @@ class mainpage extends StatelessWidget {
     return Scaffold(
       body: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context,snapshot){
-          if(snapshot.hasData){
-            return Dashboard();
-          }else{
-            return Home();
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return HomeScreen();
+          } else {
+            return Home(); // Login form
           }
-        }
-        ,
+        },
       ),
     );
   }

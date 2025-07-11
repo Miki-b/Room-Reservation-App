@@ -9,6 +9,7 @@ class BookingModel {
   final DateTime endDate;
   final String status;
   final DateTime createdAt;
+  final String paymentStatus; // 'paid' or 'unpaid'
 
   BookingModel({
     required this.id,
@@ -19,6 +20,7 @@ class BookingModel {
     required this.endDate,
     required this.status,
     required this.createdAt,
+    required this.paymentStatus,
   });
 
   factory BookingModel.fromMap(Map<String, dynamic> map, String id) {
@@ -31,6 +33,7 @@ class BookingModel {
       endDate: (map['endDate'] as Timestamp).toDate(),
       status: map['status'] ?? 'confirmed',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      paymentStatus: map['paymentStatus'] ?? 'unpaid',
     );
   }
 
@@ -43,6 +46,7 @@ class BookingModel {
       'endDate': endDate,
       'status': status,
       'createdAt': createdAt,
+      'paymentStatus': paymentStatus,
     };
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase/data/models/hotel_model.dart';
 import 'package:firebase/presentation/screens/admin/admin_screen.dart';
 import 'Favourites.dart';
 import '../home/homee.dart';
@@ -12,7 +13,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../home/HomeScreen.dart';
 
 class Setting extends StatefulWidget {
-  final void Function(List<Hotels> hotels) onHotelsFetched;
+  final void Function(List<HotelModel> hotels) onHotelsFetched;
 
   const Setting({required this.onHotelsFetched, super.key});
 

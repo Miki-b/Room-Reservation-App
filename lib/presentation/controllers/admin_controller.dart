@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/hotel_model.dart';
 import '../../data/models/room_type_model.dart';
 import '../../data/repositories/hotel_repository.dart';
+import '../../data/models/room_model.dart';
 
 class AdminState {
   final bool isLoading;
@@ -39,6 +40,12 @@ class AdminController extends StateNotifier<AdminState> {
     required String location,
     required String description,
     required List<String> roomTypeDescriptions,
+    required List<int> roomCounts,
+    required int stars,
+    required String paymentMethodId,
+    required String paymentAccountNumber,
+    required double latitude,
+    required double longitude,
   }) async {
     state = state.copyWith(isLoading: true, error: null, success: false);
     try {
@@ -49,14 +56,19 @@ class AdminController extends StateNotifier<AdminState> {
         id: '',
         name: hotelName,
         location: location,
+        latitude: latitude,
+        longitude: longitude,
         description: description,
         images: hotelImageUrls,
         amenityIds: facilities,
         ownerId: '', // Set this from FirebaseAuth if needed
         createdAt: DateTime.now(),
+        stars: stars,
+        paymentMethodId: paymentMethodId,
+        paymentAccountNumber: paymentAccountNumber,
       );
       final hotelId = await _repo.addHotel(hotel);
-      // 3. Create room types (groups)
+      // 3. Create room types (groups) and rooms
       for (int i = 0; i < roomTypes.length; i++) {
         final roomType = RoomType(
           id: '',
@@ -64,13 +76,26 @@ class AdminController extends StateNotifier<AdminState> {
           name: roomTypes[i],
           description: roomTypeDescriptions[i],
           image: '', // Will be set after upload
-          count: 1, // Default to 1 per type
+          count: roomCounts[i],
           price: prices[i],
           amenityIds: facilities,
           images: [], // Add room images if needed
           createdAt: DateTime.now(),
         );
-        await _repo.addRoomType(roomType, roomImages[i]);
+        final roomTypeId = await _repo.addRoomType(roomType, roomImages[i]);
+        // Create individual rooms
+        for (int j = 0; j < roomCounts[i]; j++) {
+          final roomNumber = '${roomTypes[i]}-${j + 1}';
+          final room = Room(
+            id: '',
+            hotelId: hotelId,
+            roomTypeId: roomTypeId,
+            roomNumber: roomNumber,
+            status: 'available',
+            createdAt: DateTime.now(),
+          );
+          await _repo.addRoom(room);
+        }
       }
       state = state.copyWith(isLoading: false, success: true);
     } catch (e) {

@@ -6,6 +6,8 @@ class MyTextfield extends StatefulWidget {
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
 
   const MyTextfield({
     super.key,
@@ -14,6 +16,8 @@ class MyTextfield extends StatefulWidget {
     required this.controller,
     this.onChanged,
     this.validator,
+    this.prefixIcon,
+    this.suffixIcon,
   });
 
   @override
@@ -48,19 +52,21 @@ class _MyTextfieldState extends State<MyTextfield> {
         ),
         filled: true,
         fillColor: Colors.grey.shade100,
-        suffixIcon: widget.isPassword
-            ? IconButton(
-                icon: Icon(
-                  _obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureText = !_obscureText;
-                  });
-                },
-              )
-            : null,
+        prefixIcon: widget.prefixIcon,
+        suffixIcon: widget.suffixIcon ??
+            (widget.isPassword
+                ? IconButton(
+                    icon: Icon(
+                      _obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  )
+                : null),
       ),
       cursorColor: Theme.of(context).colorScheme.primary,
       style: const TextStyle(fontSize: 18, color: Colors.black),

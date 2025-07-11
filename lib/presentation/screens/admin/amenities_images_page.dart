@@ -4,6 +4,7 @@ import 'admin_wizard_state.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class AmenitiesImagesPage extends StatefulWidget {
   final AdminWizardState state;
@@ -39,9 +40,17 @@ class AmenitiesImagesPageState extends State<AmenitiesImagesPage> {
     final picker = ImagePicker();
     final pickedFiles = await picker.pickMultiImage();
     if (pickedFiles != null && pickedFiles.isNotEmpty) {
-      final validFiles =
-          pickedFiles.where((x) => File(x.path).existsSync()).toList();
-      widget.state.hotelImages.addAll(validFiles.map((x) => File(x.path)));
+      final appDir = await getApplicationDocumentsDirectory();
+      final validFiles = <File>[];
+      for (final x in pickedFiles) {
+        if (File(x.path).existsSync()) {
+          final fileName =
+              'hotel_${DateTime.now().millisecondsSinceEpoch}_${x.name}';
+          final savedFile = await File(x.path).copy('${appDir.path}/$fileName');
+          validFiles.add(savedFile);
+        }
+      }
+      widget.state.hotelImages.addAll(validFiles);
       // Optionally, show an error if some files were missing
       // if (validFiles.length != pickedFiles.length) {
       //   // Show error message to user
@@ -132,7 +141,9 @@ class AmenitiesImagesPageState extends State<AmenitiesImagesPage> {
                     right: 0,
                     child: GestureDetector(
                       onTap: () {
-                        // TODO: Remove image logic
+                        setState(() {
+                          widget.state.hotelImages[index] = null;
+                        });
                       },
                       child: Icon(Icons.remove_circle, color: Colors.red),
                     ),

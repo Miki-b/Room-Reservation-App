@@ -3,69 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../home/HomeScreen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../controllers/booking_cart_controller.dart';
+import '../../components/room_type_card.dart';
+import '../hotel/HotelProfile.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../controllers/booking_controller.dart';
 
-class Book extends StatefulWidget {
+class Book extends ConsumerWidget {
   const Book({Key? key}) : super(key: key);
 
   @override
-  State<Book> createState() => _BookState();
-}
-
-class _BookState extends State<Book> {
-  late Hotels? allRooms;
-  late String? location;
-  late String? roomName;
-  late String? roomPrice;
-  late String? roomBeds;
-  late String? roomAvailable;
-  late String? roomSize;
-  late dynamic roomImages;
-  final List<RoomsTypes> multipleRooms = [];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-      setState(() {
-        allRooms = args['All rooms'];
-        location = args['location'];
-        roomName = args['Room name'];
-        roomPrice = args['Room price'].toString();
-        roomBeds = args['Room beds'].toString();
-        roomAvailable = args['Room available'].toString();
-        roomSize = args['Room roomSize'].toString();
-        roomImages= args['Room images'];
-      });
-    });
-  }
-
-  void addRoom(RoomsTypes room) {
-    setState(() {
-      multipleRooms.add(room);
-    });
-  }
-
-  void removeRoom(int index) {
-    setState(() {
-      multipleRooms.removeAt(index);
-    });
-  }
-
-  double calculateTotalPrice() {
-    double total = 0;
-    for (var room in multipleRooms) {
-      total += double.tryParse(room.roomPrice ?? '0') ?? 0;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cart = ref.watch(bookingCartProvider);
+    double calculateTotalPrice() {
+      double total = 0;
+      for (var cartRoom in cart) {
+        total += cartRoom.room.price;
+      }
+      return total;
     }
-    return total;
-  }
 
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text(roomName ?? 'Room Booking', style: TextStyle(color: Colors.black)),
+        title: Text('Room Booking', style: TextStyle(color: Colors.black)),
         iconTheme: IconThemeData(color: Colors.black),
         actions: [
           Padding(
@@ -83,140 +45,168 @@ class _BookState extends State<Book> {
         child: Column(
           children: [
             Expanded(
-              child: RoomsCard(
-                roomsTypes: RoomsTypes(
-                  location: location,
-                  roomSize: roomSize,
-                  roomAvailable: roomAvailable,
-                  roomBeds: roomBeds,
-                  roomName: roomName,
-                  roomPrice: roomPrice,
-                  roomimages: roomImages,
-                ),
-                multipleRooms: multipleRooms,
-                removeRoom: removeRoom,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: GestureDetector(
-                onTap: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return SizedBox(
-                        height: 200,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Select Room types"),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: allRooms!.roomType.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      addRoom(RoomsTypes(
-                                        location: allRooms!.location,
-                                        roomName: allRooms!.roomType[index],
-                                        roomPrice: allRooms!.price[index].toString(),
-                                        roomBeds: allRooms!.noOfBeds[index].toString(),
-                                        roomAvailable: allRooms!.availableRooms[index].toString(),
-                                        roomSize: allRooms!.roomSize[index].toString(),
-                                        roomimages: roomImages,
-                                      ));
-                                      Navigator.pop(context); // Close the bottom sheet after selection
-                                    },
-                                    child: Container(
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.grey.shade400,
-                                            offset: Offset(0, 1),
-                                            blurRadius: 5,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            width: 100,
-                                            height: 90,
-                                            child: CachedNetworkImage(
-                                               imageUrl: allRooms!.roomimages[index], // Assuming you have roomTypeImages in Hotels
-
-                                              placeholder: (context, url) => CircularProgressIndicator(),
-                                              errorWidget: (context, url, error) => Icon(Icons.error),
+              child: ListView.builder(
+                itemCount: cart.length,
+                itemBuilder: (context, index) {
+                  final cartRoom = cart[index];
+                  final room = cartRoom.room;
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: room.image.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: CachedNetworkImage(
+                                    imageUrl: room.image,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : null,
+                          title: Text(room.name),
+                          subtitle:
+                              Text('ETB ${room.price.toStringAsFixed(2)}'),
+                          trailing: IconButton(
+                            icon: Icon(Icons.remove_circle_outline,
+                                color: Colors.red),
+                            onPressed: () {
+                              ref
+                                  .read(bookingCartProvider.notifier)
+                                  .remove(cartRoom);
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                Text("Check-in: "),
+                                TextButton(
+                                  onPressed: () async {
+                                    final now = DateTime.now();
+                                    final initialDate =
+                                        cartRoom.checkInDate.isBefore(now)
+                                            ? now
+                                            : cartRoom.checkInDate;
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: initialDate,
+                                      firstDate: now,
+                                      lastDate: now.add(Duration(days: 365)),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: Theme.of(context)
+                                                  .colorScheme
+                                                  .secondary,
+                                              onPrimary: Colors.white,
+                                              onSurface: Colors.black,
+                                              secondary: Theme.of(context)
+                                                  .colorScheme
+                                                  .secondary,
                                             ),
-                                          ),
-                                          Expanded(
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(10.0),
-                                              child: Container(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisAlignment: MainAxisAlignment.end,
-                                                  children: [
-                                                    Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                      children: [
-                                                        Text(allRooms!.roomType[index], style: TextStyle(fontSize: 15)),
-                                                        Row(
-                                                          children: [
-                                                            Text((allRooms!.price[index]).toString(), style: TextStyle(fontSize: 15)),
-                                                            Text("/night", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Text(
-                                                      "Max Guests: adults , child",
-                                                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                                                    ),
-                                                    SizedBox(height: 15),
-                                                  ],
-                                                ),
+                                            textButtonTheme:
+                                                TextButtonThemeData(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor:
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .secondary,
                                               ),
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (picked != null) {
+                                      ref
+                                          .read(bookingCartProvider.notifier)
+                                          .updateCheckInDate(cartRoom, picked);
+                                    }
+                                  },
+                                  child: Text(
+                                    DateFormat('yyyy-MM-dd')
+                                        .format(cartRoom.checkInDate),
+                                    style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondary),
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                Text("Check-out: "),
+                                TextButton(
+                                  onPressed: () async {
+                                    final minCheckOut = cartRoom.checkInDate
+                                        .add(Duration(days: 1));
+                                    final initialDate = cartRoom.checkOutDate
+                                            .isAfter(minCheckOut)
+                                        ? cartRoom.checkOutDate
+                                        : minCheckOut;
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: initialDate,
+                                      firstDate: minCheckOut,
+                                      lastDate: DateTime.now()
+                                          .add(Duration(days: 366)),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: Theme.of(context)
+                                                  .colorScheme
+                                                  .secondary,
+                                              onPrimary: Colors.white,
+                                              onSurface: Colors.black,
+                                              secondary: Theme.of(context)
+                                                  .colorScheme
+                                                  .secondary,
+                                            ),
+                                            textButtonTheme:
+                                                TextButtonThemeData(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor:
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .secondary,
+                                              ),
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (picked != null) {
+                                      ref
+                                          .read(bookingCartProvider.notifier)
+                                          .updateCheckOutDate(cartRoom, picked);
+                                    }
+                                  },
+                                  child: Text(
+                                    DateFormat('yyyy-MM-dd')
+                                        .format(cartRoom.checkOutDate),
+                                    style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondary),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   );
                 },
-                child: Container(
-                  width: double.infinity,
-                  height: 35,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.shade200,
-                        offset: Offset(0, 1),
-                        blurRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text('Add rooms'),
-                  ),
-                ),
               ),
             ),
             Container(
@@ -242,7 +232,7 @@ class _BookState extends State<Book> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text("Total Price"),
-                        Text('\$${calculateTotalPrice().toStringAsFixed(2)}'),
+                        Text('ETB ${calculateTotalPrice().toStringAsFixed(2)}'),
                       ],
                     ),
                   ),
@@ -252,41 +242,86 @@ class _BookState extends State<Book> {
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, '/pay');
-          },
-          child: Container(
-            width: double.infinity,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.yellow,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade400,
-                  offset: Offset(0, 1),
-                  blurRadius: 5,
+      bottomNavigationBar: cart.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: Consumer(
+                builder: (context, ref, _) => ElevatedButton(
+                  onPressed: () async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('You must be logged in to book.')),
+                      );
+                      return;
+                    }
+                    final bookingController =
+                        ref.read(bookingControllerProvider.notifier);
+                    String? errorMessage;
+                    for (var cartRoom in cart) {
+                      try {
+                        await bookingController.bookRoom(
+                          userId: user.uid,
+                          hotelId: cartRoom.room.hotelId,
+                          roomTypeId: cartRoom.room.id,
+                          startDate: cartRoom.checkInDate,
+                          endDate: cartRoom.checkOutDate,
+                        );
+                      } catch (e) {
+                        errorMessage = e.toString();
+                        break;
+                      }
+                    }
+                    final state = ref.read(bookingControllerProvider);
+                    String? errorToShow =
+                        errorMessage; // from exception, if any
+
+                    // If no exception, but booking failed, check state for error
+                    if (errorToShow == null &&
+                        !state.success &&
+                        state.error != null) {
+                      errorToShow = state.error;
+                    }
+
+                    if (errorToShow == null && state.success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text('Booking request sent! Await approval.')),
+                      );
+                      // Optionally clear cart or navigate
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                'Booking failed: ${errorToShow ?? "Please try again."}')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text('Book (${cart.length})'),
                 ),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                'Book Now',
-                style: TextStyle(fontSize: 20),
               ),
-            ),
-          ),
-        ),
-      ),
+            )
+          : null,
     );
   }
 }
 
 class RoomsCard extends StatefulWidget {
-  RoomsCard({super.key, required this.roomsTypes, required this.multipleRooms, required this.removeRoom});
+  RoomsCard(
+      {super.key,
+      required this.roomsTypes,
+      required this.multipleRooms,
+      required this.removeRoom});
   RoomsTypes roomsTypes;
   List<RoomsTypes> multipleRooms;
   final Function(int) removeRoom;
@@ -312,18 +347,23 @@ class _RoomsCardState extends State<RoomsCard> {
     );
   }
 
-  Future<void> _selectDate(BuildContext context, bool isCheckIn, int index) async {
+  Future<void> _selectDate(
+      BuildContext context, bool isCheckIn, int index) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isCheckIn ? widget.multipleRooms[index].checkInDate : widget.multipleRooms[index].checkOutDate,
+      initialDate: isCheckIn
+          ? widget.multipleRooms[index].checkInDate
+          : widget.multipleRooms[index].checkOutDate,
       firstDate: DateTime(2022), // Updated to include more years
-      lastDate: DateTime(2025),  // Updated to extend the range
+      lastDate: DateTime(2025), // Updated to extend the range
     );
     if (picked != null) {
       setState(() {
-        if (isCheckIn && picked.isBefore(widget.multipleRooms[index].checkOutDate)) {
+        if (isCheckIn &&
+            picked.isBefore(widget.multipleRooms[index].checkOutDate)) {
           widget.multipleRooms[index].checkInDate = picked;
-        } else if (!isCheckIn && picked.isAfter(widget.multipleRooms[index].checkInDate)) {
+        } else if (!isCheckIn &&
+            picked.isAfter(widget.multipleRooms[index].checkInDate)) {
           widget.multipleRooms[index].checkOutDate = picked;
         } else {
           // Show an error message or handle invalid date selection
@@ -396,8 +436,10 @@ class _RoomsCardState extends State<RoomsCard> {
                           height: 150,
                           child: CachedNetworkImage(
                             imageUrl: widget.multipleRooms[index].roomimages,
-                            placeholder: (context, url) => CircularProgressIndicator(),
-                            errorWidget: (context, url, error) => Icon(Icons.error),
+                            placeholder: (context, url) =>
+                                CircularProgressIndicator(),
+                            errorWidget: (context, url, error) =>
+                                Icon(Icons.error),
                           ),
                         ),
                       ),
@@ -411,17 +453,30 @@ class _RoomsCardState extends State<RoomsCard> {
                               children: [
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(widget.multipleRooms[index].roomName ?? 'Room Name', style: GoogleFonts.bebasNeue(fontSize: 25)),
+                                    Text(
+                                        widget.multipleRooms[index].roomName ??
+                                            'Room Name',
+                                        style: GoogleFonts.bebasNeue(
+                                            fontSize: 25)),
                                     GestureDetector(
                                       onTap: () => widget.removeRoom(index),
-                                      child: Icon(Icons.cancel_outlined, color: Colors.red.shade300),
+                                      child: Icon(Icons.cancel_outlined,
+                                          color: Colors.red.shade300),
                                     ),
                                   ],
                                 ),
-                                Text(widget.multipleRooms[index].location ?? 'Location', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                Text('Room Price: ${widget.multipleRooms[index].roomPrice} per night', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                Text(
+                                    widget.multipleRooms[index].location ??
+                                        'Location',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.grey)),
+                                Text(
+                                    'Room Price: ${widget.multipleRooms[index].roomPrice} per night',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.grey)),
                                 SizedBox(height: 15),
                               ],
                             ),
@@ -442,9 +497,18 @@ class _RoomsCardState extends State<RoomsCard> {
                           if (isExpanded)
                             Column(
                               children: [
-                                Text('Number of Beds: ${widget.multipleRooms[index].roomBeds}', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                Text('Available Rooms: ${widget.multipleRooms[index].roomAvailable}', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                Text('Room Size: ${widget.multipleRooms[index].roomSize}', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                Text(
+                                    'Number of Beds: ${widget.multipleRooms[index].roomBeds}',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.grey)),
+                                Text(
+                                    'Available Rooms: ${widget.multipleRooms[index].roomAvailable}',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.grey)),
+                                Text(
+                                    'Room Size: ${widget.multipleRooms[index].roomSize}',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.grey)),
                               ],
                             ),
                           GestureDetector(
@@ -454,7 +518,9 @@ class _RoomsCardState extends State<RoomsCard> {
                               });
                             },
                             child: Center(
-                              child: Icon(isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
+                              child: Icon(isExpanded
+                                  ? Icons.keyboard_arrow_up_rounded
+                                  : Icons.keyboard_arrow_down_rounded),
                             ),
                           ),
                         ],
@@ -471,7 +537,11 @@ class _RoomsCardState extends State<RoomsCard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text("Check in", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            Text("Check in",
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold)),
                             GestureDetector(
                               onTap: () {
                                 _selectDate(context, true, index);
@@ -480,7 +550,12 @@ class _RoomsCardState extends State<RoomsCard> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(5),
                                 ),
-                                child: Text(formatDate(widget.multipleRooms[index].checkInDate), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                    formatDate(widget
+                                        .multipleRooms[index].checkInDate),
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
@@ -489,7 +564,11 @@ class _RoomsCardState extends State<RoomsCard> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Check out", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            Text("Check out",
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold)),
                             GestureDetector(
                               onTap: () {
                                 _selectDate(context, false, index);
@@ -498,7 +577,12 @@ class _RoomsCardState extends State<RoomsCard> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(5),
                                 ),
-                                child: Text(formatDate(widget.multipleRooms[index].checkOutDate), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                    formatDate(widget
+                                        .multipleRooms[index].checkOutDate),
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
@@ -517,16 +601,17 @@ class _RoomsCardState extends State<RoomsCard> {
 }
 
 class RoomsTypes {
-  RoomsTypes({
-    required this.location,
-    required this.roomSize,
-    required this.roomAvailable,
-    required this.roomBeds,
-    required this.roomName,
-    required this.roomPrice,
-    required this.roomimages
-  }) : checkInDate = DateTime.now(),
-        checkOutDate = DateTime.now().add(Duration(days: 1)); // Initializing dates
+  RoomsTypes(
+      {required this.location,
+      required this.roomSize,
+      required this.roomAvailable,
+      required this.roomBeds,
+      required this.roomName,
+      required this.roomPrice,
+      required this.roomimages})
+      : checkInDate = DateTime.now(),
+        checkOutDate =
+            DateTime.now().add(Duration(days: 1)); // Initializing dates
 
   String? location;
   String? roomName;

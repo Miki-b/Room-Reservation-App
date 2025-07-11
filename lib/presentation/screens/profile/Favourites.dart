@@ -21,7 +21,7 @@ class _FavouritesState extends State<Favourites> {
 
   Future<void> fetch() async {
     try {
-      QuerySnapshot snapshot = await _firestore.collection("hotels").get();
+      QuerySnapshot snapshot = await _firestore.collection("hotel_list").get();
       List<Map> hotels = snapshot.docs.map((doc) {
         return {
           'id': doc.id,
@@ -44,12 +44,12 @@ class _FavouritesState extends State<Favourites> {
       print('Error fetching data: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Firestore Data Fetcher'),
-
       ),
       body: Container(
         height: 700,

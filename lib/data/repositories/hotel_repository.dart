@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/hotel_model.dart';
 import '../models/room_type_model.dart';
+import '../models/room_model.dart';
 
 class HotelRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -44,6 +45,42 @@ class HotelRepository {
 
   Future<String> addHotel(HotelModel hotel) async {
     final doc = await _firestore.collection('hotel_list').add(hotel.toMap());
+    return doc.id;
+  }
+
+  Future<List<HotelModel>> fetchAllHotels() async {
+    final snapshot = await _firestore.collection('hotel_list').get();
+    return snapshot.docs
+        .map((doc) => HotelModel.fromMap(doc.data(), doc.id))
+        .toList();
+  }
+
+  Future<HotelModel?> fetchHotelById(String hotelId) async {
+    final doc = await _firestore.collection('hotel_list').doc(hotelId).get();
+    if (doc.exists) {
+      return HotelModel.fromMap(doc.data()!, doc.id);
+    }
+    return null;
+  }
+
+  Future<Room?> fetchRoomById(String roomId) async {
+    final doc = await _firestore.collection('rooms').doc(roomId).get();
+    if (doc.exists) {
+      return Room.fromMap(doc.data()!, doc.id);
+    }
+    return null;
+  }
+
+  Future<RoomType?> fetchRoomTypeById(String roomTypeId) async {
+    final doc = await _firestore.collection('room_types').doc(roomTypeId).get();
+    if (doc.exists) {
+      return RoomType.fromMap(doc.data()!, doc.id);
+    }
+    return null;
+  }
+
+  Future<String> addRoom(Room room) async {
+    final doc = await _firestore.collection('rooms').add(room.toMap());
     return doc.id;
   }
 }

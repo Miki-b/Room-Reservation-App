@@ -10,81 +10,94 @@ import '../profile/Settings.dart';
 import '../../../firestore.dart';
 import 'homee.dart';
 import '../admin/admin_screen.dart';
+import '../../components/city_card.dart';
+import '../../components/hotel_card.dart';
+import 'package:lottie/lottie.dart';
+import '../../components/app_drawer.dart';
+import '../../components/hotel_card_shimmer.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../controllers/home_controller.dart';
+import '../../../data/models/hotel_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../data/models/booking_model.dart';
+import '../../../data/repositories/booking_repository.dart';
+import '../../components/bookings_tab_page.dart';
 
 //Setting set=new Setting(onHotelsFetched: (List<Hotels> hotels) {  },);
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   HomeScreen({super.key});
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<Hotels> allHotels = [];
-  List<Hotels> searchedHotel = [];
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int pageIndex = 0;
-  List<Hotels> nearbyHotels = [];
+  String searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    fetchNearbyHotels();
-    AllHotels();
-    searchedHotel = [];
-  }
-
-  Future<void> AllHotels() async {
-    List<Hotels> hotels = await FirestoreService.allHotels();
-    setState(() {
-      allHotels = hotels;
-    });
-  }
-
-  Future<void> fetchNearbyHotels() async {
-    List<Hotels> hotels = await FirestoreService.fetchNearbyHotels();
-    setState(() {
-      nearbyHotels = hotels;
-    });
+    Future.microtask(
+        () => ref.read(homeControllerProvider.notifier).fetchAll());
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(homeControllerProvider);
     final pages = [
       HomeContent(
-        nearby: nearbyHotels,
-        allhotel: allHotels,
+        nearby: state.nearbyHotels,
+        allhotel: state.allHotels,
+        isLoading: state.isLoading,
+        searchQuery: searchQuery,
+        onSearch: (q) => setState(() => searchQuery = q),
       ),
-      Favourites(),
-      AdminScreen(), // Replaces Setting for testing
+      BookingsTabPage(),
+      AdminScreen(),
     ];
 
     return Scaffold(
       backgroundColor: Colors.yellow[10],
       appBar: AppBar(
         toolbarHeight: 100,
-        title: Row(
-          children: [
-            Icon(Icons.menu, size: 30),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-              child: Column(
+        title: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+          child: Consumer(builder: (context, ref, _) {
+            final userAsync = ref.watch(userInfoProvider);
+            return userAsync.when(
+              loading: () => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Hey', style: Theme.of(context).textTheme.headlineSmall),
+                  Text("Find your Hotel",
+                      style: Theme.of(context).textTheme.headlineSmall),
+                ],
+              ),
+              error: (err, stack) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Hey', style: Theme.of(context).textTheme.headlineSmall),
+                  Text("Find your Hotel",
+                      style: Theme.of(context).textTheme.headlineSmall),
+                ],
+              ),
+              data: (user) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hey',
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 30,
-                    ),
+                    user?.firstName != null && user!.firstName.isNotEmpty
+                        ? 'Hey, ${user.firstName}!'
+                        : 'Hey',
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   Text(
                     "Find your Hotel",
-                    style: GoogleFonts.bebasNeue(
-                      fontSize: 30,
-                    ),
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 ],
               ),
-            ),
-          ],
+            );
+          }),
         ),
         actions: [
           Padding(
@@ -94,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         elevation: 2,
       ),
+      drawer: const AppDrawer(),
       body: pages[pageIndex],
       bottomNavigationBar: Container(
         height: 72,
@@ -102,72 +116,28 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Column(children: [
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    pageIndex = 0;
-                  });
-                },
-                icon: pageIndex == 0
-                    ? const Icon(
-                        Icons.home,
-                        size: 25,
-                      )
-                    : const Icon(
-                        Icons.home_outlined,
-                        size: 25,
-                      ),
-              ),
-              Text(
-                'Home',
-                style: TextStyle(fontSize: 15),
-              )
-            ]),
-            Column(children: [
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    pageIndex = 1;
-                  });
-                },
-                icon: pageIndex == 1
-                    ? const Icon(
-                        Icons.favorite,
-                        size: 25,
-                      )
-                    : const Icon(
-                        Icons.favorite_border,
-                        size: 25,
-                      ),
-              ),
-              Text(
-                'Favourites',
-                style: TextStyle(fontSize: 15),
-              )
-            ]),
-            Column(children: [
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    pageIndex = 2;
-                  });
-                },
-                icon: pageIndex == 2
-                    ? const Icon(
-                        Icons.settings,
-                        size: 25,
-                      )
-                    : const Icon(
-                        Icons.settings_outlined,
-                        size: 25,
-                      ),
-              ),
-              Text(
-                'Settings',
-                style: TextStyle(fontSize: 15),
-              )
-            ]),
+            _NavBarItem(
+              icon: pageIndex == 0 ? Icons.home_rounded : Icons.home_outlined,
+              label: 'Home',
+              selected: pageIndex == 0,
+              onTap: () => setState(() => pageIndex = 0),
+            ),
+            _NavBarItem(
+              icon: pageIndex == 1
+                  ? Icons.book_online_rounded
+                  : Icons.book_online_outlined,
+              label: 'Bookings',
+              selected: pageIndex == 1,
+              onTap: () => setState(() => pageIndex = 1),
+            ),
+            _NavBarItem(
+              icon: pageIndex == 2
+                  ? Icons.settings_rounded
+                  : Icons.settings_outlined,
+              label: 'Settings',
+              selected: pageIndex == 2,
+              onTap: () => setState(() => pageIndex = 2),
+            ),
           ],
         ),
       ),
@@ -176,11 +146,18 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class HomeContent extends StatelessWidget {
-  const HomeContent({required this.nearby, super.key, required this.allhotel});
-  final List<Hotels> nearby;
-  final List<Hotels> allhotel;
-
-  //final List<String> cities;
+  const HomeContent(
+      {required this.nearby,
+      super.key,
+      required this.allhotel,
+      required this.isLoading,
+      required this.searchQuery,
+      required this.onSearch});
+  final List<HotelModel> nearby;
+  final List<HotelModel> allhotel;
+  final bool isLoading;
+  final String searchQuery;
+  final ValueChanged<String> onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -193,265 +170,189 @@ class HomeContent extends StatelessWidget {
       'Gondor',
       'DireDawa'
     ];
+    final filteredHotels = searchQuery.isEmpty
+        ? allhotel
+        : allhotel
+            .where(
+                (h) => h.name.toLowerCase().contains(searchQuery.toLowerCase()))
+            .toList();
     return Padding(
       padding: const EdgeInsets.all(10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/search');
-            },
-            child: Container(
-              width: double.infinity,
-              height: 40,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    offset: Offset(0, 3),
-                    blurRadius: 5,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search bar above banner
+            GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/search');
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      offset: Offset(0, 2),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: IgnorePointer(
+                  child: TextField(
+                    onChanged: onSearch,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                    decoration: InputDecoration(
+                      hintText: 'Search hotels, cities, amenities... ',
+                      prefixIcon: Icon(Icons.search),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    ),
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SizedBox(width: 40),
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Icon(Icons.search),
-                  )
-                ],
+                ),
               ),
             ),
-          ),
-          SizedBox(height: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Cities"),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: cities
-                      .map((city) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: CityCard(
-                              city: city,
-                              allhotel: allhotel,
-                            ),
-                          ))
-                      .toList(),
-                ),
-              ),
-              Text("Near you"),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: nearby
-                      .map((hotel) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: HotelsCard(hotel: hotel),
-                          ))
-                      .toList(),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class CityCard extends StatelessWidget {
-  const CityCard({required this.city, super.key, required this.allhotel});
-  final String city;
-  final List<Hotels> allhotel;
-
-  Widget buildStars(int rating) {
-    return Row(
-      children: List.generate(
-          rating, (index) => Icon(Icons.star, color: Colors.amber, size: 10)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    List<Hotels> searchedHotel = [];
-    Future<void> Searched(String key) async {
-      key = key + ", Ethiopia";
-      for (var hotels in allhotel) {
-        if (hotels.location == key) {
-          searchedHotel.add(hotels);
-        }
-      }
-    }
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () async {
-          await Searched(city);
-          Navigator.pushReplacementNamed(context, '/search',
-              arguments: searchedHotel);
-        },
-        child: Container(
-          width: 150,
-          height: 140,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade400,
-                offset: Offset(0, 1),
-                blurRadius: 5,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                height: 75,
+            // Banner with text and Lottie
+            GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/HotelMap', arguments: allhotel);
+              },
+              child: Container(
+                width: double.infinity,
+                height: 140,
                 decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/${city}.jpg"),
-                    fit: BoxFit.fill,
-                  ),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      offset: Offset(0, 2),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(city,
-                        style: GoogleFonts.bebasNeue(
-                          fontSize: 15,
-                        )),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Center(
+                          child: Text(
+                            'Search by location',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                ),
+                            textAlign: TextAlign.left,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Lottie.asset('assets/banner_lottie.json',
+                            fit: BoxFit.contain),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+            SizedBox(height: 20),
+            Text("Cities", style: Theme.of(context).textTheme.titleMedium),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: cities
+                    .map((city) => CityCard(
+                          city: city,
+                          imageAsset: 'assets/$city.jpg',
+                          onTap: () {
+                            // Navigate to search page with city filter
+                            Navigator.pushNamed(context, '/search',
+                                arguments: city);
+                          },
+                        ))
+                    .toList(),
+              ),
+            ),
+            SizedBox(height: 20),
+            Text("Near you", style: Theme.of(context).textTheme.titleMedium),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: isLoading
+                    ? List.generate(3, (_) => const HotelCardShimmer())
+                    : nearby
+                        .map((hotel) => HotelCard(
+                              name: hotel.name,
+                              location: hotel.location.toString(),
+                              stars:
+                                  4, // Default or fetch from another property if available
+                              imageUrl: hotel.images.isNotEmpty
+                                  ? hotel.images[0]
+                                  : '',
+                              onTap: () {
+                                Navigator.pushNamed(context, '/HotelProfile',
+                                    arguments: hotel);
+                              },
+                            ))
+                        .toList(),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class HotelsCard extends StatelessWidget {
-  const HotelsCard({required this.hotel, super.key});
-  final Hotels hotel;
-
-  Widget buildStars(int rating) {
-    return Row(
-      children: List.generate(
-          rating, (index) => Icon(Icons.star, color: Colors.amber, size: 10)),
-    );
-  }
-
-  @override
+class _NavBarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _NavBarItem(
+      {required this.icon,
+      required this.label,
+      required this.selected,
+      required this.onTap});
   @override
   Widget build(BuildContext context) {
+    final color = selected
+        ? (Theme.of(context).colorScheme.secondary ??
+            Theme.of(context).colorScheme.primary)
+        : Colors.grey;
     return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/HotelProfile',
-            arguments: hotel,
-          );
-        },
-        child: Container(
-          width: 150,
-          height: 140,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade400,
-                offset: Offset(0, 1),
-                blurRadius: 5,
-              ),
-            ],
-          ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                height: 75,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: CachedNetworkImageProvider(hotel.imageUrls[0]),
-                    fit: BoxFit.fill,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(hotel.hotelname,
-                        style: GoogleFonts.bebasNeue(
-                          fontSize: 15,
-                        )),
-                    Text(hotel.location.toString(),
-                        style: GoogleFonts.bebasNeue(
-                          fontSize: 10,
-                          color: Colors.grey,
-                        )),
-                    buildStars(hotel.hotelStar),
-                  ],
-                ),
-              ),
+              Icon(icon, size: 30, color: color),
+              SizedBox(height: 4),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: color,
+                      fontWeight:
+                          selected ? FontWeight.bold : FontWeight.normal)),
             ],
           ),
         ),
       ),
     );
   }
-}
-
-class Hotels {
-  Hotels({
-    required this.id,
-    required this.hotelname,
-    required this.tokens,
-    required this.email,
-    required this.roomType,
-    required this.noOfBeds,
-    required this.price,
-    required this.roomSize,
-    required this.availableRooms,
-    required this.facilities,
-    required this.latitude,
-    required this.longitude,
-    required this.hotelStar,
-    required this.imageUrls,
-    required this.roomimages,
-    required this.location,
-  });
-  String id;
-  List<String> tokens;
-  String hotelname;
-  String email;
-  List<dynamic> roomType;
-  List<dynamic> noOfBeds;
-  List<dynamic> price;
-  List<dynamic> roomSize;
-  List<dynamic> availableRooms;
-  List<dynamic> facilities;
-  double latitude;
-  double longitude;
-  int hotelStar;
-  List<dynamic> imageUrls;
-  List<dynamic> roomimages;
-  dynamic location;
 }

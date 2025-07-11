@@ -18,6 +18,7 @@ class AdminWizardState {
   final List<TextEditingController> roomSizeControllers = [];
   final List<TextEditingController> availableRoomsControllers = [];
   final List<TextEditingController> roomNumberControllers = [];
+  final List<TextEditingController> roomCountControllers = [];
   final List<String> roomStatusList = [];
   final List<String> statusOptions = ['available', 'booked', 'maintenance'];
   LatLng hotelLatLng = LatLng(0, 0);
@@ -27,6 +28,8 @@ class AdminWizardState {
   bool isCheckedReception = false;
   bool isCheckedPool = false;
   bool isCheckedBreakfast = false;
+  String? selectedPaymentMethodId;
+  String? selectedPaymentAccountNumber;
   void initializeRoomControllers(int count) {
     roomTypeControllers.clear();
     roomTypeDescriptionControllers.clear();
@@ -37,6 +40,7 @@ class AdminWizardState {
     roomNumberControllers.clear();
     roomStatusList.clear();
     roomImages.clear();
+    roomCountControllers.clear();
     for (int i = 0; i < count; i++) {
       roomTypeControllers.add(TextEditingController());
       roomTypeDescriptionControllers.add(TextEditingController());
@@ -47,6 +51,7 @@ class AdminWizardState {
       roomNumberControllers.add(TextEditingController());
       roomStatusList.add('available');
       roomImages.add(null);
+      roomCountControllers.add(TextEditingController(text: '1'));
     }
   }
 }

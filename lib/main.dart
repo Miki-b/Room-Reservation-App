@@ -1,9 +1,10 @@
+import 'package:firebase/data/models/hotel_model.dart';
 import 'package:firebase/presentation/screens/admin/admin_screen.dart';
 
 import 'presentation/screens/profile/Dashboard.dart';
 import 'presentation/screens/hotel/HotelsMap.dart';
-import 'presentation/screens/profile/SignUp.dart';
-import 'presentation/screens/home/home.dart';
+import 'presentation/screens/auth/SignUp.dart';
+import 'presentation/screens/auth/signIn.dart';
 import 'presentation/screens/booking/Book.dart';
 import 'presentation/screens/home/HomeScreen.dart';
 import 'presentation/screens/hotel/HotelProfile.dart';
@@ -11,6 +12,7 @@ import 'presentation/screens/booking/Payment.dart';
 import 'presentation/screens/booking/Search.dart';
 import 'presentation/screens/map/map.dart';
 import 'presentation/screens/home/Mainpage.dart';
+import 'presentation/screens/profile/edit_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'presentation/screens/auth/auth_gate.dart';
@@ -53,7 +55,8 @@ class MyApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color.fromARGB(255, 0, 128, 113), width: 2),
+            borderSide:
+                BorderSide(color: Color.fromARGB(255, 0, 128, 113), width: 2),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -70,17 +73,34 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
-        '/': (context) => AdminScreen(),
-        '/home': (context) => AdminScreen(),
-        '/mainpage': (context) => HomeScreen(),
+        '/': (context) => AuthGate(),
+        '/home': (context) => AuthGate(),
+        '/mainpage': (context) => mainpage(),
         '/signUp': (context) => SignUp(),
         '/dashboard': (context) => Dashboard(),
         '/map': (context) => Maps(),
         '/search': (context) => Search(),
         '/HotelProfile': (context) => HotelProfile(),
         '/admin': (context) => AdminScreen(),
-        '/Book': (context) => Book(),
-        '/pay': (context) => Payment(),
+        '/book': (context) => Book(), // <-- lowercase route
+        '/pay': (context) => PaymentPage(
+              booking: throw UnimplementedError(),
+              hotel: throw UnimplementedError(),
+              roomType: throw UnimplementedError(),
+              userFullName: '',
+              userPhone: '',
+            ),
+        '/edit_profile': (context) => const EditProfilePage(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/HotelMap') {
+          final allHotels = (settings.arguments as List?)?.cast<HotelModel>() ??
+              <HotelModel>[];
+          return MaterialPageRoute(
+            builder: (context) => HotelsMap(allHotels: allHotels),
+          );
+        }
+        return null;
       },
     );
   }

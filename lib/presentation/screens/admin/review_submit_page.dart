@@ -55,7 +55,9 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
                           right: 0,
                           child: GestureDetector(
                             onTap: () {
-                              // TODO: Remove image logic
+                              setState(() {
+                                widget.state.roomImages[index] = null;
+                              });
                             },
                             child: Icon(Icons.remove_circle, color: Colors.red),
                           ),
@@ -105,7 +107,6 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
                         facilities: facilities,
                         roomTypes: List.generate(widget.state.typeofRooms,
                             (i) => widget.state.roomTypeControllers[i].text),
-                        // Not used in new model
                         prices: List.generate(
                             widget.state.typeofRooms,
                             (i) =>
@@ -115,12 +116,26 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
                         hotelImages: widget.state.hotelImages.cast<File?>(),
                         roomImages: widget.state.roomImages.cast<File?>(),
                         location: widget.state.locationController.text,
-                        
                         description: widget.state.descriptionController.text,
                         roomTypeDescriptions: List.generate(
                             widget.state.typeofRooms,
                             (i) => widget
                                 .state.roomTypeDescriptionControllers[i].text),
+                        roomCounts: List.generate(
+                            widget.state.typeofRooms,
+                            (i) =>
+                                int.tryParse(widget
+                                    .state.roomCountControllers[i].text) ??
+                                1),
+                        stars:
+                            int.tryParse(widget.state.starsController.text) ??
+                                4,
+                        paymentMethodId:
+                            widget.state.selectedPaymentMethodId ?? '',
+                        paymentAccountNumber:
+                            widget.state.selectedPaymentAccountNumber ?? '',
+                        latitude: widget.state.hotelLatLng.latitude,
+                        longitude: widget.state.hotelLatLng.longitude,
                       );
                 },
         ),

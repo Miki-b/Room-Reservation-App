@@ -4,6 +4,7 @@ import '../../components/my_button.dart';
 import 'admin_wizard_state.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class RoomTypesPage extends StatefulWidget {
   final AdminWizardState state;
@@ -50,8 +51,14 @@ class RoomTypesPageState extends State<RoomTypesPage> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null && File(pickedFile.path).existsSync()) {
+      // Copy to app documents directory
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName =
+          'room_${DateTime.now().millisecondsSinceEpoch}_${pickedFile.name}';
+      final savedFile =
+          await File(pickedFile.path).copy('${appDir.path}/$fileName');
       setState(() {
-        widget.state.roomImages[index] = File(pickedFile.path);
+        widget.state.roomImages[index] = savedFile;
       });
     } else {
       // Optionally, show error message to user
@@ -130,6 +137,18 @@ class RoomTypesPageState extends State<RoomTypesPage> {
                             final n = double.tryParse(v);
                             if (n == null || n <= 0)
                               return 'Enter a valid price';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        MyTextfield(
+                          labelText: 'Number of rooms',
+                          controller: widget.state.roomCountControllers[index],
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return 'Required';
+                            final n = int.tryParse(v);
+                            if (n == null || n <= 0)
+                              return 'Enter a valid number';
                             return null;
                           },
                         ),

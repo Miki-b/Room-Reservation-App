@@ -9,6 +9,11 @@ class HotelModel {
   final List<String> amenityIds;
   final String ownerId;
   final DateTime createdAt;
+  final int stars;
+  final String paymentMethodId;
+  final String paymentAccountNumber;
+  final double latitude;
+  final double longitude;
 
   HotelModel({
     required this.id,
@@ -19,6 +24,11 @@ class HotelModel {
     required this.amenityIds,
     required this.ownerId,
     required this.createdAt,
+    required this.stars,
+    required this.paymentMethodId,
+    required this.paymentAccountNumber,
+    required this.latitude,
+    required this.longitude,
   });
 
   factory HotelModel.fromMap(Map<String, dynamic> map, String id) {
@@ -31,6 +41,11 @@ class HotelModel {
       amenityIds: List<String>.from(map['amenityIds'] ?? []),
       ownerId: map['ownerId'] ?? '',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      stars: map['stars'] ?? 4,
+      paymentMethodId: map['paymentMethodId'] ?? '',
+      paymentAccountNumber: map['paymentAccountNumber'] ?? '',
+      latitude: (map['latitude'] ?? 0).toDouble(),
+      longitude: (map['longitude'] ?? 0).toDouble(),
     );
   }
 
@@ -43,6 +58,11 @@ class HotelModel {
       'amenityIds': amenityIds,
       'ownerId': ownerId,
       'createdAt': createdAt,
+      'stars': stars,
+      'paymentMethodId': paymentMethodId,
+      'paymentAccountNumber': paymentAccountNumber,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }

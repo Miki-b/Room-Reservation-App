@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../home/HomeScreen.dart';
-import '../../../firestore.dart';
+import '../../../data/models/hotel_model.dart';
 
 class HotelsMap extends StatefulWidget {
-  final List<Hotels> allHotels;
+  final List<HotelModel> allHotels;
 
   HotelsMap({super.key, required this.allHotels});
 
@@ -14,41 +13,39 @@ class HotelsMap extends StatefulWidget {
 
 class _HotelsMapState extends State<HotelsMap> {
   late GoogleMapController _mapController;
-  final Map<String, Marker> _markers = {};
+  Set<Marker> _markers = {};
 
   @override
   void initState() {
     super.initState();
-    _initMarkers();
+    _setMarkers();
   }
 
-  void _initMarkers() {
-    for (final hotel in widget.allHotels) {
-      final marker = Marker(
-        markerId: MarkerId(hotel.hotelname),
+  void _setMarkers() {
+    final markers = widget.allHotels.map((hotel) {
+      return Marker(
+        markerId: MarkerId(hotel.id),
         position: LatLng(hotel.latitude, hotel.longitude),
         infoWindow: InfoWindow(
+          title: hotel.name,
+          snippet: hotel.description,
           onTap: () {
             Navigator.pushNamed(
               context,
               '/HotelProfile',
               arguments: hotel,
-
             );
           },
-          title: hotel.hotelname,
-          snippet: hotel.email,
         ),
       );
-      _markers[hotel.hotelname] = marker;
-    }
+    }).toSet();
+    setState(() {
+      _markers = markers;
+    });
   }
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
-    setState(() {
-      // Markers are already initialized in initState
-    });
   }
 
   @override
@@ -64,7 +61,7 @@ class _HotelsMapState extends State<HotelsMap> {
           target: LatLng(9.0192, 38.7525),
           zoom: 13,
         ),
-        markers: _markers.values.toSet(),
+        markers: _markers,
         myLocationEnabled: true,
       ),
     );
